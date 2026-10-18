@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <!-- Pour que la page s'adapte bien à l'écran de la tablette -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Vêtements</title>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Pour installer l'app sur l'écran d'accueil de la tablette (nom, icône, couleur) -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icone-192.png">
+  <link rel="apple-touch-icon" href="icone-180.png">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-title" content="Stock">
+</head>
+<body>
+
+  <!-- En-tête avec le nom de l'application -->
+  <header>
+    <h1>👕 Stock Vêtements</h1>
+  </header>
+
+  <!-- Les 4 onglets. data-onglet indique quelle section afficher -->
+  <nav class="onglets">
+    <button class="onglet actif" data-onglet="scanner">📷 Scanner</button>
+    <button class="onglet" data-onglet="stock">📦 Stock</button>
+    <button class="onglet" data-onglet="vetements">🏷️ Vêtements</button>
+    <button class="onglet" data-onglet="historique">🕒 Historique</button>
+  </nav>
+
+  <main>
+    <!-- Bandeau de rappel : s'affiche si aucune copie de secours depuis 7 jours -->
+    <div id="rappel-copie" class="rappel" hidden>
+      <span id="texte-rappel"></span>
+      <button type="button" id="bouton-copie-rappel" class="bouton bouton-principal">💾 Faire une copie maintenant</button>
+    </div>
+
+    <!-- Onglet 1 : Scanner -->
+    <section id="scanner" class="page visible">
+      <h2>Scanner une étiquette</h2>
+
+      <!-- Bouton pour allumer la caméra -->
+      <button type="button" id="bouton-camera" class="bouton bouton-principal grand">📷 Allumer la caméra</button>
+
+      <!-- Ici s'affiche l'image de la caméra -->
+      <div id="lecteur"></div>
+
+      <!-- Carte du vêtement scanné, avec les boutons Entrée / Sortie -->
+      <div id="carte-scan" class="carte-scan" hidden>
+        <p id="scan-nom" class="scan-nom"></p>
+        <p id="scan-details" class="scan-details"></p>
+        <p class="scan-stock">En stock : <strong id="scan-stock"></strong></p>
+        <div class="boutons-mouvement">
+          <button type="button" id="bouton-entree" class="bouton bouton-entree">⬇️ Entrée<br><small>je rapporte</small></button>
+          <button type="button" id="bouton-sortie" class="bouton bouton-sortie">⬆️ Sortie<br><small>je prends</small></button>
+        </div>
+        <button type="button" id="bouton-annuler-scan" class="bouton bouton-secondaire">Annuler</button>
+      </div>
+
+      <!-- Message après une action (vert = ok, rouge = problème) -->
+      <p id="message-scan" class="message-scan" hidden></p>
+
+      <!-- Si la caméra ne marche pas ou qu'une étiquette est abîmée -->
+      <details class="choix-manuel">
+        <summary>Pas d'étiquette ? Choisir le vêtement dans la liste</summary>
+        <select id="choix-vetement">
+          <option value="">Choisir…</option>
+        </select>
+      </details>
+    </section>
+
+    <!-- Onglet 2 : Stock -->
+    <section id="stock" class="page">
+      <h2>Stock actuel</h2>
+
+      <!-- Barre de recherche : filtre le tableau pendant qu'on tape -->
+      <input type="search" id="recherche-stock" class="recherche" placeholder="🔍 Rechercher (ex. veste, femme, M…)">
+
+      <p id="stock-vide" class="bientot">Aucun vêtement pour l'instant. Ajoute-les dans l'onglet « Vêtements ».</p>
+
+      <table id="tableau-stock" class="tableau">
+        <thead>
+          <tr>
+            <th>Vêtement</th>
+            <th>Homme / Femme</th>
+            <th>Taille</th>
+            <th class="nombre">Quantité</th>
+          </tr>
+        </thead>
+        <tbody id="lignes-stock"></tbody>
+      </table>
+
+      <p id="total-stock" class="total"></p>
+
+      <!-- Résumé : un petit tableau par vêtement, avec les tailles en colonnes -->
+      <div id="resume-tailles"></div>
+    </section>
+
+    <!-- Onglet 3 : Vêtements & étiquettes -->
+    <section id="vetements" class="page">
+      <h2>Vêtements &amp; étiquettes</h2>
+
+      <!-- Formulaire pour ajouter (ou modifier) un vêtement -->
+      <form id="formulaire-vetement">
+        <h3 id="titre-formulaire">Ajouter un vêtement</h3>
+        <div class="champs">
+          <label>
+            Nom du vêtement
+            <!-- Pour ajouter une catégorie plus tard : copier une ligne <option> et changer le texte -->
+            <select id="champ-nom" required>
+              <option value="" disabled selected>Choisir…</option>
+              <option value="Veste">Veste</option>
+              <option value="Veste softshell">Veste softshell</option>
+              <option value="Pantalon">Pantalon</option>
+            </select>
+          </label>
+          <label>
+            Homme ou femme
+            <select id="champ-genre" required>
+              <option value="" disabled selected>Choisir…</option>
+              <option value="Homme">Homme</option>
+              <option value="Femme">Femme</option>
+            </select>
+          </label>
+          <label>
+            Taille
+            <input type="text" id="champ-taille" placeholder="ex. M" required>
+          </label>
+          <label>
+            Quantité en stock
+            <input type="number" id="champ-stock" min="0" value="0" required>
+          </label>
+        </div>
+        <p id="message-formulaire" class="message"></p>
+        <div class="boutons">
+          <button type="submit" id="bouton-enregistrer" class="bouton bouton-principal">Ajouter</button>
+          <button type="button" id="bouton-annuler" class="bouton bouton-secondaire" hidden>Annuler</button>
+        </div>
+      </form>
+
+      <!-- Liste des vêtements déjà enregistrés -->
+      <div class="titre-avec-bouton">
+        <h3>Mes vêtements</h3>
+        <button type="button" id="bouton-imprimer-tout" class="bouton bouton-principal">🖨️ Imprimer toutes les étiquettes</button>
+      </div>
+      <p id="liste-vide" class="bientot">Aucun vêtement pour l'instant. Ajoute le premier avec le formulaire ci-dessus.</p>
+      <ul id="liste-vetements" class="liste"></ul>
+    </section>
+
+    <!-- Onglet 4 : Historique -->
+    <section id="historique" class="page">
+      <h2>Historique</h2>
+
+      <p id="historique-vide" class="bientot">Aucun mouvement pour l'instant. Ils apparaîtront ici après chaque Entrée ou Sortie.</p>
+
+      <div class="defilement">
+        <table id="tableau-historique" class="tableau">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Vêtement</th>
+              <th>Homme / Femme</th>
+              <th>Taille</th>
+              <th>Mouvement</th>
+              <th class="nombre">Reste</th>
+            </tr>
+          </thead>
+          <tbody id="lignes-historique"></tbody>
+        </table>
+      </div>
+      <p id="info-historique" class="total"></p>
+
+      <!-- Sauvegarde : une copie de toutes les données dans un fichier -->
+      <div class="sauvegarde">
+        <h2>💾 Copie de secours</h2>
+        <p>✅ L'app enregistre tout <strong>automatiquement</strong> dans la tablette, à chaque action. Rien à faire de ce côté.</p>
+        <p>La copie de secours sert si la tablette casse ou est perdue : elle met tout (vêtements, stock, historique) dans un fichier rangé dans « Téléchargements ». Pense à la faire au moins une fois par semaine, un rappel s'affichera sinon.</p>
+        <p id="derniere-sauvegarde" class="details"></p>
+        <div class="boutons boutons-sauvegarde">
+          <button type="button" id="bouton-sauvegarder" class="bouton bouton-principal">💾 Faire une copie de secours</button>
+          <button type="button" id="bouton-recharger" class="bouton bouton-secondaire">📂 Récupérer une copie (nouvelle tablette)</button>
+          <button type="button" id="bouton-excel" class="bouton bouton-secondaire">📊 Historique pour Excel</button>
+        </div>
+        <!-- Champ caché pour choisir le fichier de sauvegarde -->
+        <input type="file" id="fichier-sauvegarde" accept=".json,application/json" hidden>
+        <p id="message-sauvegarde" class="message"></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Aperçu des étiquettes : s'ouvre par-dessus l'app. À l'impression, seules les étiquettes sortent. -->
+  <div id="apercu" hidden>
+    <div class="apercu-barre">
+      <strong>Aperçu des étiquettes</strong>
+      <div class="boutons">
+        <button type="button" id="bouton-lancer-impression" class="bouton bouton-principal">🖨️ Imprimer</button>
+        <button type="button" id="bouton-fermer-apercu" class="bouton bouton-secondaire">Fermer</button>
+      </div>
+    </div>
+    <section id="etiquettes"></section>
+  </div>
+
+  <!-- Bibliothèque gratuite qui dessine les QR codes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Bibliothèque gratuite qui lit les QR codes avec la caméra -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
