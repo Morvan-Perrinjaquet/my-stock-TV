@@ -29,6 +29,41 @@ function enregistrerDonnees() {
   localStorage.setItem(CLE_STOCKAGE, JSON.stringify(donnees));
 }
 
+// ----- Liste de départ (d'après le tableau Excel « QR Projet ») -----
+// Au tout premier lancement de l'app, ces vêtements sont créés avec 1 pièce chacun.
+const LISTE_DE_DEPART = [
+  { genre: "Femme", tailles: ["XXS", "XS", "S", "M", "L", "XL"] },
+  { genre: "Homme", tailles: ["S", "M", "L", "XL", "XXL", "XXXL"] },
+];
+const VETEMENTS_DE_DEPART = ["Veste softshell", "Veste", "Pantalon"];
+const STOCK_DE_DEPART = 1;
+
+// Ajoute les vêtements de la liste de départ qui n'existent pas encore.
+// Renvoie le nombre de vêtements ajoutés.
+function ajouterListeDeDepart() {
+  let nombreAjoutes = 0;
+  LISTE_DE_DEPART.forEach(({ genre, tailles }) => {
+    VETEMENTS_DE_DEPART.forEach((nom) => {
+      tailles.forEach((taille) => {
+        const existeDeja = donnees.articles.some(
+          (a) => a.nom === nom && a.genre === genre && a.taille === taille
+        );
+        if (!existeDeja) {
+          donnees.articles.push({ id: nouvelIdentifiant(), nom, genre, taille, stock: STOCK_DE_DEPART });
+          nombreAjoutes++;
+        }
+      });
+    });
+  });
+  return nombreAjoutes;
+}
+
+// Premier lancement (rien d'enregistré dans la tablette) : on crée la liste de départ
+if (localStorage.getItem(CLE_STOCKAGE) === null) {
+  ajouterListeDeDepart();
+  enregistrerDonnees();
+}
+
 // Crée un identifiant unique, par exemple "VET-0007". C'est ce qu'il y aura dans le QR code.
 function nouvelIdentifiant() {
   const id = "VET-" + String(donnees.prochainNumero).padStart(4, "0");
@@ -372,6 +407,23 @@ function afficherResumeTailles(articles) {
 
 // On met à jour le tableau à chaque lettre tapée dans la recherche
 rechercheStock.addEventListener("input", afficherStock);
+
+// Bouton « Ajouter la liste de départ » : ajoute seulement les vêtements qui manquent
+document.getElementById("bouton-liste-depart").addEventListener("click", () => {
+  const ok = confirm(
+    "Ajouter les vêtements de la liste de départ qui manquent, avec " + STOCK_DE_DEPART + " pièce chacun ?\n" +
+    "Les vêtements déjà présents ne sont pas modifiés."
+  );
+  if (!ok) return;
+
+  const nombre = ajouterListeDeDepart();
+  enregistrerDonnees();
+  afficherTout();
+  afficherMessage(
+    nombre === 0 ? "Toute la liste de départ est déjà là." : nombre + " vêtement(s) ajouté(s).",
+    false
+  );
+});
 
 boutonAnnuler.addEventListener("click", () => {
   viderFormulaire();
