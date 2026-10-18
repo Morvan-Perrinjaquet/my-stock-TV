@@ -333,9 +333,18 @@ function afficherResumeTailles(articles) {
   resumeTailles.innerHTML = "";
   if (articles.length === 0) return;
 
+  // Titre « Résumé par taille » avec le bouton Excel à côté
+  const enTete = document.createElement("div");
+  enTete.className = "titre-avec-bouton";
   const titre = document.createElement("h2");
   titre.textContent = "Résumé par taille";
-  resumeTailles.append(titre);
+  const boutonExcel = document.createElement("button");
+  boutonExcel.type = "button";
+  boutonExcel.className = "bouton bouton-secondaire";
+  boutonExcel.textContent = "📊 Exporter en Excel";
+  boutonExcel.addEventListener("click", exporterResumeExcel);
+  enTete.append(titre, boutonExcel);
+  resumeTailles.append(enTete);
 
   // Les vêtements présents, dans l'ordre choisi (Veste softshell, Veste, Pantalon)
   const nomsPresents = [...new Set(articles.map((a) => a.nom))];
@@ -780,18 +789,58 @@ function exporterExcel() {
     return;
   }
 
-  // Excel en français utilise le point-virgule pour séparer les colonnes
   const entete = ["Date", "Vêtement", "Homme / Femme", "Taille", "Mouvement", "Reste"];
   const lignes = donnees.mouvements.map((m) => [
     dateLisible(m.date), m.nom, m.genre, m.taille, m.type === "entrée" ? "Entrée" : "Sortie", m.stockApres,
   ]);
-  const texte = [entete, ...lignes]
+  telechargerExcel("historique-stock-" + dateDuJour() + ".csv", [entete, ...lignes]);
+  afficherMessageSauvegarde("Fichier Excel téléchargé.", false);
+}
+
+// Transforme un tableau (liste de lignes) en fichier .csv qu'Excel sait ouvrir, puis le télécharge
+function telechargerExcel(nomFichier, lignes) {
+  // Excel en français utilise le point-virgule pour séparer les colonnes
+  const texte = lignes
     .map((ligne) => ligne.map((valeur) => '"' + String(valeur).replace(/"/g, '""') + '"').join(";"))
     .join("\r\n");
 
   // "﻿" au début : pour que Excel affiche bien les accents
-  telechargerFichier("historique-stock-" + dateDuJour() + ".csv", "﻿" + texte, "text/csv");
-  afficherMessageSauvegarde("Fichier Excel téléchargé.", false);
+  telechargerFichier(nomFichier, "﻿" + texte, "text/csv");
+}
+
+// 📊 Export Excel du résumé par taille (tout le stock), dans un seul tableau :
+//   Vêtement | Homme / Femme | XXS | XS | S | … | Total
+function exporterResumeExcel() {
+  const articles = donnees.articles;
+  if (articles.length === 0) return;
+
+  // Toutes les tailles existantes, de la plus petite à la plus grande
+  const tailles = [...new Set(articles.map((a) => a.taille))];
+  tailles.sort((a, b) => rangTaille(a) - rangTaille(b) || a.localeCompare(b, "fr"));
+
+  const lignes = [["Vêtement", "Homme / Femme", ...tailles, "Total"]];
+  let totalGeneral = 0;
+
+  ORDRE_GENRES.forEach((genre) => {
+    // Les vêtements de ce genre, dans l'ordre choisi (Veste softshell, Veste, Pantalon)
+    const noms = [...new Set(articles.filter((a) => a.genre === genre).map((a) => a.nom))];
+    noms.sort((a, b) => ORDRE_VETEMENTS.indexOf(a) - ORDRE_VETEMENTS.indexOf(b));
+
+    noms.forEach((nom) => {
+      let total = 0;
+      const quantites = tailles.map((taille) => {
+        const article = articles.find((a) => a.nom === nom && a.genre === genre && a.taille === taille);
+        if (!article) return "-"; // ce vêtement n'existe pas dans cette taille
+        total += article.stock;
+        return article.stock;
+      });
+      totalGeneral += total;
+      lignes.push([nom, genre, ...quantites, total]);
+    });
+  });
+
+  lignes.push(["Total", "", ...tailles.map(() => ""), totalGeneral]);
+  telechargerExcel("stock-par-taille-" + dateDuJour() + ".csv", lignes);
 }
 
 document.getElementById("bouton-sauvegarder").addEventListener("click", sauvegarder);
